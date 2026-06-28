@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ Boss Tracker — Lineage 1</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#111;color:#eee;padding-bottom:2rem}
+h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;color:#fff}
+.subtitle{font-size:12px;color:#888;text-align:center;margin-bottom:1.25rem}
+.zone{border-radius:12px;border:1.5px solid;padding:1rem;margin:0 0.75rem 1.25rem}
+.zone-header{display:flex;align-items:center;gap:8px;margin-bottom:0.85rem}
+.zone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.zone-title{font-size:14px;font-weight:500;color:#fff}
+.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.boss-card{border-radius:8px;border:0.5px solid #333;background:#1a1a1a;overflow:hidden}
+.boss-btn{width:100%;padding:8px 10px 6px;background:transparent;border:none;cursor:pointer;text-align:left}
+.boss-btn:hover{background:#222}
+.boss-name{font-size:13px;font-weight:500;color:#fff;display:block;margin-bottom:1px}
+.boss-window{font-size:10px;color:#666}
+.boss-timer{padding:6px 10px 8px;border-top:0.5px solid #333;display:none}
+.boss-timer.active{display:block}
+.timer-display{font-size:20px;font-weight:500;font-family:monospace;text-align:center;margin-bottom:2px}
+.timer-status{font-size:10px;text-align:center;margin-bottom:6px}
+.timer-bar{height:3px;border-radius:2px;background:#222;overflow:hidden;margin-bottom:6px}
+.timer-bar-fill{height:100%;border-radius:2px;transition:width 1s linear}
+.reset-btn{display:block;width:100%;padding:3px;font-size:10px;color:#666;background:transparent;border:0.5px solid #333;border-radius:4px;cursor:pointer}
+.reset-btn:hover{color:#aaa;background:#222}
+.state-early .timer-display{color:#e24b4a}
+.state-early .timer-status{color:#e24b4a}
+.state-early .timer-bar-fill{background:#e24b4a}
+.state-maybe .timer-display{color:#ef9f27}
+.state-maybe .timer-status{color:#ef9f27}
+.state-maybe .timer-bar-fill{background:#ef9f27}
+.state-sure .timer-display{color:#639922}
+.state-sure .timer-status{color:#639922}
+.state-sure .timer-bar-fill{background:#639922}
+#status-bar{text-align:center;font-size:11px;color:#555;padding:0.5rem;margin-bottom:0.5rem}
+#status-bar.connected{color:#639922}
+#status-bar.disconnected{color:#e24b4a}
+</style>
+</head>
+<body>
+
+<h1>⚔ Boss Tracker</h1>
+<p class="subtitle">Toca el nombre del boss al matarlo · rojo: muy pronto · naranja: puede haber spawneado · verde: seguro</p>
+<div id="status-bar">Conectando...</div>
+<div id="root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEq28Vh82N9c5BxMtfQ9I3hpGOR88UT6g",
+  authDomain: "lineage-bosses.firebaseapp.com",
+  databaseURL: "https://lineage-bosses-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "lineage-bosses",
+  storageBucket: "lineage-bosses.firebasestorage.app",
+  messagingSenderId: "226806534411",
+  appId: "1:226806534411:web:652d94427fd14a9bba520e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const ZONES=[
+{id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:true,bosses:[
+{id:'arlpeer',name:'Arlpeer',min:90,max:180},
+{id:'capaldre',name:'Capaldre',min:90,max:180},
+{id:'lycante',name:'Lycante',min:90,max:180},
+{id:'nekrose',name:'Nekrose',min:90,max:180},
+{id:'orukuce',name:'Orukuce',min:90,max:180},
+]},
+{id:'aden',label:'Aden',color:'#185FA5',bg:'#E6F1FB0d',sorted:true,bosses:[
+{id:'cerenis',name:'Cerenis',min:90,max:240},
+{id:'kenrauhel',name:'Ken Rauhel',min:90,max:240},
+]},
+{id:'mainland',label:'Mainland Aden',color:'#534AB7',bg:'#EEEDFE0d',sorted:true,bosses:[
+{id:'ancientgiant',name:'Ancient Giant',min:90,max:240},
+{id:'bigfoot',name:'Bigfoot Mayo',min:150,max:300},
+{id:'darkelder',name:'Dark Elder',min:10,max:120},
+{id:'doppelganger',name:'Doppelganger Boss',min:90,max:240},
+{id:'faruuk',name:'Faruuk',min:90,max:240},
+{id:'antqueen',name:'Giant Ant Queen',min:210,max:420},
+{id:'phoenix',name:'Phoenix',min:210,max:420},
+]},
+{id:'pirate',label:'Pirate Island',color:'#993C1D',bg:'#FAECE70d',sorted:true,bosses:[
+{id:'abyssmaster',name:'Abyss Master',min:150,max:300},
+{id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
+{id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
+{id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
+]},
+{id:'deepsea',label:'Deep Sea Grave of Spirit',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
+{id:'chiefmermaid',name:'Chief Mermaid',min:210,max:420},
+{id:'giantsquid',name:'Great King Squid',min:210,max:420},
+]},
+{id:'diad',label:'Diad Fortress',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
+{id:'baranka',name:'Dread King Baranka',min:90,max:240},
+{id:'laia',name:'Dread Queen Laia',min:90,max:240},
+]},
+{id:'heine',label:'Heine 4F',color:'#854F0B',bg:'#FAEEDA0d',sorted:true,bosses:[
+{id:'giantworm',name:'Giant Worm',min:60,max:120},
+{id:'kapu',name:'Kapu',min:60,max:120},
+{id:'seadancer',name:'Sea Dancer',min:30,max:60},
+{id:'spiritwater',name:'Spirit of Water',min:60,max:120},
+]},
+{id:'toi',label:'TOI',color:'#888',bg:'#2220',sorted:false,bosses:[
+{id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
+{id:'seer',name:'Seer',min:150,max:300},
+{id:'vampire',name:'Vampire',min:150,max:300},
+{id:'zombielord',name:'Zombie Lord',min:150,max:300},
+{id:'cougar',name:'Cougar',min:150,max:300},
+{id:'mummylord',name:'Mummy Lord',min:150,max:300},
+{id:'iris',name:'Iris',min:150,max:300},
+{id:'knightvald',name:'Knight Vald',min:150,max:300},
+{id:'lich',name:'Lich',min:150,max:300},
+]},
+{id:'icequeen',label:'Ice Queen Cavern',color:'#185FA5',bg:'#E6F1FB0d',sorted:true,bosses:[
+{id:'icedemon',name:'Ice Demon 2f',min:150,max:300},
+{id:'icequeenboss',name:'Ice Queen 3f',min:150,max:300},
+]},
+{id:'otros',label:'Otros',color:'#555',bg:'#1a1a1a',sorted:true,bosses:[
+{id:'baphomet',name:'Baphomet (TI 2f)',min:150,max:300},
+{id:'beleth',name:'Beleth (Windawood 2f)',min:150,max:300},
+{id:'demon',name:'Demon (Ivory Tower 8f)',min:150,max:300},
+{id:'diamondgolem',name:'Diamond Golem of Maino (Dwarf Mine)',min:210,max:420},
+{id:'faust',name:'Faust (Giran Prison)',min:90,max:180},
+{id:'glarielle',name:'Glarielle (Elven Forest)',min:150,max:300},
+{id:'shellman',name:'Shellman (Abyss Lake)',min:90,max:240},
+]},
+];
+
+const bossMap={};
+ZONES.forEach(z=>z.bosses.forEach(b=>{bossMap[b.id]={...b}}));
+
+function fmtMin(m){const h=Math.floor(m/60),mn=m%60;return h>0?(mn>0?`${h}h ${mn}m`:`${h}h`):`${mn}m`}
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
+function getClass(e,min,max){if(e>=max*60)return'state-sure';if(e>=min*60)return'state-maybe';return'state-early'}
+function getStatusText(e,min,max){if(e>=max*60)return'✓ Seguro que ha spawneado';if(e>=min*60)return'⚠ Puede haber spawneado';return`Mínimo en ${fmt(min*60-e)}`}
+function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
+
+const state={};
+
+function updateCard(id){
+  const s=state[id];
+  const card=document.getElementById('card-'+id);
+  if(!card)return;
+  const timerEl=card.querySelector('.boss-timer');
+  if(!s){timerEl.className='boss-timer';return;}
+  const elapsed=Math.floor((Date.now()-s.killedAt)/1000);
+  const {min,max}=bossMap[id];
+  timerEl.className='boss-timer active '+getClass(elapsed,min,max);
+  card.querySelector('.timer-display').textContent=fmt(elapsed);
+  card.querySelector('.timer-status').textContent=getStatusText(elapsed,min,max);
+  card.querySelector('.timer-bar-fill').style.width=getBarPct(elapsed,max)+'%';
+}
+
+function killBoss(id,name){
+  if(state[id]){if(!confirm('¿Resetear timer de '+name+'?'))return;}
+  const killedAt=Date.now();
+  set(ref(db,'bosses/'+id),{killedAt});
+}
+function resetBoss(id,name,e){
+  e.stopPropagation();
+  if(!confirm('¿Confirmar reset de '+name+'?'))return;
+  remove(ref(db,'bosses/'+id));
+}
+
+// Build UI
+const root=document.getElementById('root');
+ZONES.forEach(z=>{
+  const bosses=z.sorted?[...z.bosses].sort((a,b)=>a.name.localeCompare(b.name)):z.bosses;
+  const zDiv=document.createElement('div');
+  zDiv.className='zone';
+  zDiv.style.cssText=`border-color:${z.color};background:${z.bg}`;
+  zDiv.innerHTML=`<div class="zone-header"><div class="zone-dot" style="background:${z.color}"></div><span class="zone-title">${z.label}</span></div><div class="boss-grid" id="grid-${z.id}"></div>`;
+  root.appendChild(zDiv);
+  const grid=document.getElementById('grid-'+z.id);
+  bosses.forEach(b=>{
+    const div=document.createElement('div');
+    div.className='boss-card';
+    div.id='card-'+b.id;
+    div.innerHTML=`
+      <button class="boss-btn" onclick="killBoss('${b.id}','${b.name.replace(/'/g,"\\'")}')">
+        <span class="boss-name">${b.name}</span>
+        <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
+      </button>
+      <div class="boss-timer">
+        <div class="timer-display">00:00:00</div>
+        <div class="timer-status"></div>
+        <div class="timer-bar"><div class="timer-bar-fill" style="width:0%"></div></div>
+        <button class="reset-btn" onclick="resetBoss('${b.id}','${b.name.replace(/'/g,"\\'")}',event)">↺ Resetear</button>
+      </div>`;
+    grid.appendChild(div);
+  });
+});
+
+// Expose functions globally
+window.killBoss=killBoss;
+window.resetBoss=resetBoss;
+
+// Firebase sync
+const statusBar=document.getElementById('status-bar');
+onValue(ref(db,'bosses'),snapshot=>{
+  const data=snapshot.val()||{};
+  Object.keys(bossMap).forEach(id=>{
+    if(data[id]){state[id]={killedAt:data[id].killedAt,min:bossMap[id].min,max:bossMap[id].max};}
+    else{delete state[id];}
+    updateCard(id);
+  });
+  statusBar.textContent='● Conectado — sincronizado con Firebase';
+  statusBar.className='connected';
+},{error=>{ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';}});
+
+// Local tick
+setInterval(()=>Object.keys(state).forEach(updateCard),1000);
+</script>
+</body>
+</html>
