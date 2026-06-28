@@ -126,6 +126,10 @@ const ZONES=[
 {id:'greaterminotaur',name:'Greater Minotaur',min:90,max:240},
 {id:'mainoshaman',name:'Maino Shaman',min:210,max:420},
 ]},
+{id:'karma',label:'Karma',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
+{id:'chaos',name:'Chaos',min:210,max:420},
+{id:'valrok',name:'Valrok',min:210,max:420},
+]},
 {id:'otros',label:'Otros',color:'#555',bg:'#1a1a1a',sorted:true,bosses:[
 {id:'baphomet',name:'Baphomet (TI 2f)',min:150,max:300},
 {id:'beleth',name:'Beleth (Windawood 2f)',min:150,max:300},
@@ -231,6 +235,7 @@ ZONES.forEach(z=>{
 // Expose functions globally
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
+window.playAlert=playAlert;
 
 // Firebase sync
 const statusBar=document.getElementById('status-bar');
