@@ -212,7 +212,7 @@ onValue(ref(db,'bosses'),snapshot=>{
   });
   statusBar.textContent='● Conectado — sincronizado con Firebase';
   statusBar.className='connected';
-},{error=>{ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';}});
+},function(error){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
 
 // Local tick
 setInterval(()=>Object.keys(state).forEach(updateCard),1000);
