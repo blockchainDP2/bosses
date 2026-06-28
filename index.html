@@ -66,13 +66,13 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const ZONES=[
-{id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:true,bosses:[
+{id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:false,bosses:[
 {id:'arlpeer',name:'Arlpeer',min:90,max:180},
 {id:'capaldre',name:'Capaldre',min:90,max:180},
-{id:'kurtz',name:'Kurtz',min:120,max:240},
 {id:'lycante',name:'Lycante',min:90,max:180},
 {id:'nekrose',name:'Nekrose',min:90,max:180},
 {id:'orukuce',name:'Orukuce',min:90,max:180},
+{id:'kurtz',name:'Kurtz',min:120,max:240},
 ]},
 {id:'aden',label:'Aden',color:'#185FA5',bg:'#E6F1FB0d',sorted:true,bosses:[
 {id:'cerenis',name:'Cerenis',min:90,max:240},
@@ -126,6 +126,11 @@ const ZONES=[
 {id:'forgottenmambo',name:'Forgotten Mambo Rabbit',min:90,max:240},
 {id:'greaterminotaur',name:'Greater Minotaur',min:90,max:240},
 {id:'mainoshaman',name:'Maino Shaman',min:210,max:420},
+]},
+{id:'gludio',label:'Gludio Dungeon',color:'#534AB7',bg:'#EEEDFE0d',sorted:false,bosses:[
+{id:'deathknight',name:'Death Knight',min:210,max:420},
+{id:'loscaspas',name:'Los Caspas',min:30,max:60},
+{id:'necromancer',name:'Necromancer',min:30,max:60},
 ]},
 {id:'karma',label:'Karma',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
 {id:'chaos',name:'Chaos',min:210,max:420},
