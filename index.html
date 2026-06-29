@@ -162,7 +162,9 @@ function getClass(e,min,max){if(e>=max*60)return'state-sure';if(e>=min*60)return
 function getStatusText(e,min,max){if(e>=max*60)return'✓ Seguro que ha spawneado';if(e>=min*60)return'⚠ Puede haber spawneado';return`Mínimo en ${fmt(min*60-e)}`}
 function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
+const state={};
 const kills={};
+const alerted={};
 
 function toggleKill(id,num){
   if(!kills[id])kills[id]={1:false,2:false};
@@ -179,8 +181,6 @@ function resetKills(id){
   });
 }
 
-
-const alerted={};
 
 function playAlert(){
   try{
@@ -203,9 +203,8 @@ function playAlert(){
 
 function updateCard(id){
   const s=state[id];
-  const card=document.getElementById('card-'+id);
-  if(!card)return;
-  const timerEl=card.querySelector('.boss-timer');
+  const timerEl=document.getElementById('timer-'+id);
+  if(!timerEl)return;
   if(!s){timerEl.className='boss-timer';delete alerted[id];return;}
   const elapsed=Math.floor((Date.now()-s.killedAt)/1000);
   const {min,max}=bossMap[id];
@@ -215,9 +214,9 @@ function updateCard(id){
     playAlert();
   }
   timerEl.className='boss-timer active '+cls;
-  card.querySelector('.timer-display').textContent=fmt(elapsed);
-  card.querySelector('.timer-status').textContent=getStatusText(elapsed,min,max);
-  card.querySelector('.timer-bar-fill').style.width=getBarPct(elapsed,max)+'%';
+  document.getElementById('tdisp-'+id).textContent=fmt(elapsed);
+  document.getElementById('tstat-'+id).textContent=getStatusText(elapsed,min,max);
+  document.getElementById('tbar-'+id).style.width=getBarPct(elapsed,max)+'%';
 }
 
 function killBoss(id,name){
@@ -254,10 +253,10 @@ ZONES.forEach(z=>{
         <button class="kill-btn" id="kill-${b.id}-1" onclick="toggleKill('${b.id}',1)">1</button>
         <button class="kill-btn" id="kill-${b.id}-2" onclick="toggleKill('${b.id}',2)">2</button>
       </div>
-      <div class="boss-timer">
-        <div class="timer-display">00:00:00</div>
-        <div class="timer-status"></div>
-        <div class="timer-bar"><div class="timer-bar-fill" style="width:0%"></div></div>
+      <div class="boss-timer" id="timer-${b.id}">
+        <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
+        <div class="timer-status" id="tstat-${b.id}"></div>
+        <div class="timer-bar"><div class="timer-bar-fill" id="tbar-${b.id}" style="width:0%"></div></div>
         <button class="reset-btn" onclick="resetBoss('${b.id}','${b.name.replace(/'/g,"\\'")}',event)">↺ Resetear</button>
       </div>`;
     grid.appendChild(div);
