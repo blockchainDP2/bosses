@@ -221,7 +221,6 @@ function updateCard(id){
 }
 
 function killBoss(id,name){
-  if(state[id]){if(!confirm('¿Resetear timer de '+name+'?'))return;}
   const killedAt=Date.now();
   set(ref(db,'bosses/'+id),{killedAt});
 }
