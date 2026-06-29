@@ -203,8 +203,9 @@ function playAlert(){
 
 function updateCard(id){
   const s=state[id];
-  const timerEl=document.getElementById('timer-'+id);
-  if(!timerEl)return;
+  const card=document.getElementById('card-'+id);
+  if(!card)return;
+  const timerEl=card.querySelector('.boss-timer');
   if(!s){timerEl.className='boss-timer';delete alerted[id];return;}
   const elapsed=Math.floor((Date.now()-s.killedAt)/1000);
   const {min,max}=bossMap[id];
@@ -214,9 +215,9 @@ function updateCard(id){
     playAlert();
   }
   timerEl.className='boss-timer active '+cls;
-  document.getElementById('tdisp-'+id).textContent=fmt(elapsed);
-  document.getElementById('tstat-'+id).textContent=getStatusText(elapsed,min,max);
-  document.getElementById('tbar-'+id).style.width=getBarPct(elapsed,max)+'%';
+  card.querySelector('.timer-display').textContent=fmt(elapsed);
+  card.querySelector('.timer-status').textContent=getStatusText(elapsed,min,max);
+  card.querySelector('.timer-bar-fill').style.width=getBarPct(elapsed,max)+'%';
 }
 
 function killBoss(id,name){
@@ -253,10 +254,10 @@ ZONES.forEach(z=>{
         <button class="kill-btn" id="kill-${b.id}-1" onclick="toggleKill('${b.id}',1)">1</button>
         <button class="kill-btn" id="kill-${b.id}-2" onclick="toggleKill('${b.id}',2)">2</button>
       </div>
-      <div class="boss-timer" id="timer-${b.id}">
-        <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
-        <div class="timer-status" id="tstat-${b.id}"></div>
-        <div class="timer-bar"><div class="timer-bar-fill" id="tbar-${b.id}" style="width:0%"></div></div>
+      <div class="boss-timer">
+        <div class="timer-display">00:00:00</div>
+        <div class="timer-status"></div>
+        <div class="timer-bar"><div class="timer-bar-fill" style="width:0%"></div></div>
         <button class="reset-btn" onclick="resetBoss('${b.id}','${b.name.replace(/'/g,"\\'")}',event)">↺ Resetear</button>
       </div>`;
     grid.appendChild(div);
