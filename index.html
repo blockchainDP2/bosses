@@ -36,7 +36,10 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .state-sure .timer-display{color:#639922}
 .state-sure .timer-status{color:#639922}
 .state-sure .timer-bar-fill{background:#639922}
-#status-bar{text-align:center;font-size:11px;color:#555;padding:0.5rem;margin-bottom:0.5rem}
+.boss-kills{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333}
+.kill-btn{flex:1;padding:4px;font-size:11px;font-weight:600;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s}
+.kill-btn.active{color:#fff;background:#2a5a0a;border-color:#639922}
+.kill-btn:hover:not(.active){background:#222;color:#aaa}
 #status-bar.connected{color:#639922}
 #status-bar.disconnected{color:#e24b4a}
 </style>
@@ -159,7 +162,24 @@ function getClass(e,min,max){if(e>=max*60)return'state-sure';if(e>=min*60)return
 function getStatusText(e,min,max){if(e>=max*60)return'✓ Seguro que ha spawneado';if(e>=min*60)return'⚠ Puede haber spawneado';return`Mínimo en ${fmt(min*60-e)}`}
 function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
-const state={};
+const kills={};
+
+function toggleKill(id,num){
+  if(!kills[id])kills[id]={1:false,2:false};
+  kills[id][num]=!kills[id][num];
+  const btn=document.getElementById('kill-'+id+'-'+num);
+  if(btn)btn.classList.toggle('active',kills[id][num]);
+}
+
+function resetKills(id){
+  kills[id]={1:false,2:false};
+  [1,2].forEach(n=>{
+    const btn=document.getElementById('kill-'+id+'-'+n);
+    if(btn)btn.classList.remove('active');
+  });
+}
+
+
 const alerted={};
 
 function playAlert(){
@@ -209,6 +229,7 @@ function resetBoss(id,name,e){
   e.stopPropagation();
   if(!confirm('¿Confirmar reset de '+name+'?'))return;
   remove(ref(db,'bosses/'+id));
+  resetKills(id);
 }
 
 // Build UI
@@ -230,6 +251,10 @@ ZONES.forEach(z=>{
         <span class="boss-name">${b.name}</span>
         <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
       </button>
+      <div class="boss-kills">
+        <button class="kill-btn" id="kill-${b.id}-1" onclick="toggleKill('${b.id}',1)">1</button>
+        <button class="kill-btn" id="kill-${b.id}-2" onclick="toggleKill('${b.id}',2)">2</button>
+      </div>
       <div class="boss-timer">
         <div class="timer-display">00:00:00</div>
         <div class="timer-status"></div>
@@ -244,6 +269,7 @@ ZONES.forEach(z=>{
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
 window.playAlert=playAlert;
+window.toggleKill=toggleKill;
 
 // Firebase sync
 const statusBar=document.getElementById('status-bar');
