@@ -40,8 +40,20 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .kill-btn{flex:1;padding:4px;font-size:11px;font-weight:600;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s}
 .kill-btn.active{color:#fff;background:#2a5a0a;border-color:#639922}
 .kill-btn:hover:not(.active){background:#222;color:#aaa}
+#status-bar{text-align:center;font-size:11px;color:#555;padding:0.4rem;margin-bottom:0.5rem}
 #status-bar.connected{color:#639922}
 #status-bar.disconnected{color:#e24b4a}
+
+/* BONUS EXP */
+#bonus-section{margin:0 0.75rem 1.25rem;border-radius:12px;border:1.5px solid #c8a200;background:#1a1600;padding:1rem}
+#bonus-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+#bonus-title{font-size:14px;font-weight:500;color:#f0c000}
+#bonus-countdown{font-family:monospace;font-size:13px;color:#888}
+#bonus-maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.bonus-btn{padding:9px 10px;border-radius:8px;border:1px solid #444;background:#111;color:#aaa;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s}
+.bonus-btn:hover{background:#222;color:#fff;border-color:#888}
+.bonus-btn.active{background:#3a2e00;border-color:#c8a200;color:#f0c000}
+#bonus-active{font-size:11px;color:#888;text-align:center;margin-top:0.6rem;min-height:16px}
 </style>
 </head>
 <body>
@@ -49,6 +61,23 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 <h1>⚔ Boss Tracker</h1>
 <p class="subtitle">Toca el nombre del boss al matarlo · rojo: muy pronto · naranja: puede haber spawneado · verde: seguro</p>
 <div id="status-bar">Conectando...</div>
+
+<!-- BONUS EXP MAP -->
+<div id="bonus-section">
+  <div id="bonus-header">
+    <span id="bonus-title">⭐ Bonus EXP Map</span>
+    <span id="bonus-countdown">--:--</span>
+  </div>
+  <div id="bonus-maps">
+    <button class="bonus-btn" onclick="selectBonus('Giran Prison')">Giran Prison</button>
+    <button class="bonus-btn" onclick="selectBonus('Giran Dungeon')">Giran Dungeon</button>
+    <button class="bonus-btn" onclick="selectBonus('Forgotten Island')">Forgotten Island</button>
+    <button class="bonus-btn" onclick="selectBonus('TOI')">TOI</button>
+    <button class="bonus-btn" onclick="selectBonus('Deep Sea')">Deep Sea</button>
+  </div>
+  <div id="bonus-active">Ningún mapa seleccionado</div>
+</div>
+
 <div id="root"></div>
 
 <script type="module">
@@ -90,25 +119,9 @@ const ZONES=[
 {id:'antqueen',name:'Giant Ant Queen',min:210,max:420},
 {id:'phoenix',name:'Phoenix',min:210,max:420},
 ]},
-{id:'pirate',label:'Pirate Island',color:'#993C1D',bg:'#FAECE70d',sorted:true,bosses:[
-{id:'abyssmaster',name:'Abyss Master',min:150,max:300},
-{id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
-{id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
-{id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
-]},
-{id:'deepsea',label:'Deep Sea Grave of Spirit',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
-{id:'chiefmermaid',name:'Chief Mermaid',min:210,max:420},
-{id:'giantsquid',name:'Great King Squid',min:210,max:420},
-]},
 {id:'diad',label:'Diad Fortress',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
 {id:'baranka',name:'Dread King Baranka',min:90,max:240},
 {id:'laia',name:'Dread Queen Laia',min:90,max:240},
-]},
-{id:'heine',label:'Heine 4F',color:'#854F0B',bg:'#FAEEDA0d',sorted:true,bosses:[
-{id:'giantworm',name:'Giant Worm',min:60,max:120},
-{id:'kapu',name:'Kapu',min:60,max:120},
-{id:'seadancer',name:'Sea Dancer',min:30,max:60},
-{id:'spiritwater',name:'Spirit of Water',min:60,max:120},
 ]},
 {id:'toi',label:'TOI',color:'#888',bg:'#2220',sorted:false,bosses:[
 {id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
@@ -120,15 +133,6 @@ const ZONES=[
 {id:'iris',name:'Iris',min:150,max:300},
 {id:'knightvald',name:'Knight Vald',min:150,max:300},
 {id:'lich',name:'Lich',min:150,max:300},
-]},
-{id:'icequeen',label:'Ice Queen Cavern',color:'#185FA5',bg:'#E6F1FB0d',sorted:true,bosses:[
-{id:'icedemon',name:'Ice Demon 2f',min:150,max:300},
-{id:'icequeenboss',name:'Ice Queen 3f',min:150,max:300},
-]},
-{id:'forgotten',label:'Forgotten Island',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
-{id:'forgottenmambo',name:'Forgotten Mambo Rabbit',min:90,max:240},
-{id:'greaterminotaur',name:'Greater Minotaur',min:90,max:240},
-{id:'mainoshaman',name:'Maino Shaman',min:210,max:420},
 ]},
 {id:'gludio',label:'Gludio Dungeon',color:'#534AB7',bg:'#EEEDFE0d',sorted:false,bosses:[
 {id:'deathknight5f',name:'Death Knight 5f',min:210,max:420},
@@ -151,6 +155,27 @@ const ZONES=[
 {id:'shellman',name:'Shellman (Abyss Lake)',min:90,max:240},
 {id:'unicorn',name:'Unicorn',min:20,max:120},
 ]},
+{id:'forgotten',label:'Forgotten Island',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
+{id:'forgottenmambo',name:'Forgotten Mambo Rabbit',min:90,max:240},
+{id:'greaterminotaur',name:'Greater Minotaur',min:90,max:240},
+{id:'mainoshaman',name:'Maino Shaman',min:210,max:420},
+]},
+{id:'heine',label:'Heine 4F',color:'#854F0B',bg:'#FAEEDA0d',sorted:true,bosses:[
+{id:'giantworm',name:'Giant Worm',min:60,max:120},
+{id:'kapu',name:'Kapu',min:60,max:120},
+{id:'seadancer',name:'Sea Dancer',min:30,max:60},
+{id:'spiritwater',name:'Spirit of Water',min:60,max:120},
+]},
+{id:'deepsea',label:'Deep Sea Grave of Spirit',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
+{id:'chiefmermaid',name:'Chief Mermaid',min:210,max:420},
+{id:'giantsquid',name:'Great King Squid',min:210,max:420},
+]},
+{id:'pirate',label:'Pirate Island',color:'#993C1D',bg:'#FAECE70d',sorted:true,bosses:[
+{id:'abyssmaster',name:'Abyss Master',min:150,max:300},
+{id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
+{id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
+{id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
+]},
 ];
 
 const bossMap={};
@@ -164,7 +189,64 @@ function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
 const state={};
 const kills={};
-const alerted={};
+
+function playBonusAlert(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    function beep(freq,start,dur,vol){
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=freq;
+      g.gain.setValueAtTime(vol||0.5,ctx.currentTime+start);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
+      o.start(ctx.currentTime+start);
+      o.stop(ctx.currentTime+start+dur);
+    }
+    beep(660,0,0.12);
+    beep(880,0.15,0.12);
+    beep(1100,0.30,0.12);
+    beep(880,0.45,0.12);
+    beep(1320,0.60,0.4,0.6);
+  }catch(e){}
+}
+
+// BONUS EXP SECTION
+let activeBonus=null;
+function selectBonus(name){
+  document.querySelectorAll('.bonus-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent===name && activeBonus!==name);
+  });
+  if(activeBonus===name){
+    activeBonus=null;
+    document.getElementById('bonus-active').textContent='Ningún mapa seleccionado';
+  } else {
+    activeBonus=name;
+    document.getElementById('bonus-active').textContent='✓ Activo: '+name;
+    playBonusAlert();
+  }
+}
+
+// Countdown to :59 of current hour
+function updateBonusCountdown(){
+  const now=new Date();
+  const secsLeft=59*60 - (now.getMinutes()*60 + now.getSeconds());
+  if(secsLeft<=0){
+    document.getElementById('bonus-countdown').textContent='00:00';
+    if(activeBonus!==null){
+      activeBonus=null;
+      document.querySelectorAll('.bonus-btn').forEach(b=>b.classList.remove('active'));
+      document.getElementById('bonus-active').textContent='Ningún mapa seleccionado';
+    }
+    return;
+  }
+  const m=Math.floor(secsLeft/60);
+  const s=secsLeft%60;
+  document.getElementById('bonus-countdown').textContent=
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+setInterval(updateBonusCountdown,1000);
+updateBonusCountdown();
 
 function toggleKill(id,num){
   if(!kills[id])kills[id]={1:false,2:false};
@@ -181,38 +263,14 @@ function resetKills(id){
   });
 }
 
-
-function playAlert(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    function beep(freq,start,dur){
-      const o=ctx.createOscillator();
-      const g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.value=freq;
-      g.gain.setValueAtTime(0.4,ctx.currentTime+start);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
-      o.start(ctx.currentTime+start);
-      o.stop(ctx.currentTime+start+dur);
-    }
-    beep(880,0,0.15);
-    beep(1100,0.18,0.15);
-    beep(1320,0.36,0.3);
-  }catch(e){}
-}
-
 function updateCard(id){
   const s=state[id];
   const timerEl=document.getElementById('timer-'+id);
   if(!timerEl)return;
-  if(!s){timerEl.className='boss-timer';delete alerted[id];return;}
+  if(!s){timerEl.className='boss-timer';return;}
   const elapsed=Math.floor((Date.now()-s.killedAt)/1000);
   const {min,max}=bossMap[id];
   const cls=getClass(elapsed,min,max);
-  if(cls==='state-sure'&&!alerted[id]){
-    alerted[id]=true;
-    playAlert();
-  }
   timerEl.className='boss-timer active '+cls;
   document.getElementById('tdisp-'+id).textContent=fmt(elapsed);
   document.getElementById('tstat-'+id).textContent=getStatusText(elapsed,min,max);
@@ -263,11 +321,10 @@ ZONES.forEach(z=>{
   });
 });
 
-// Expose functions globally
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
-window.playAlert=playAlert;
 window.toggleKill=toggleKill;
+window.selectBonus=selectBonus;
 
 // Firebase sync
 const statusBar=document.getElementById('status-bar');
@@ -282,7 +339,6 @@ onValue(ref(db,'bosses'),snapshot=>{
   statusBar.className='connected';
 },function(error){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
 
-// Local tick
 setInterval(()=>Object.keys(state).forEach(updateCard),1000);
 </script>
 </body>
