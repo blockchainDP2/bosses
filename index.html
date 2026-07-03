@@ -226,27 +226,26 @@ function selectBonus(name){
 // Countdown to :59 of current hour
 function updateBonusCountdown(){
   const now=new Date();
-  const totalSecs=now.getMinutes()*60+now.getSeconds();
-  const secsLeft=59*60-totalSecs;
-  if(secsLeft<=0){
+  const mins=now.getMinutes();
+  const secs=now.getSeconds();
+
+  // Si estamos en el minuto 59 o más, resetear y mostrar --:--
+  if(mins>=59){
     document.getElementById('bonus-countdown').textContent='--:--';
+    if(activeBonus!==null){
+      set(ref(db,'bonus'),{map:null});
+    }
     return;
   }
+
+  const secsLeft=(58-mins)*60+(60-secs);
   const m=Math.floor(secsLeft/60);
   const s=secsLeft%60;
   document.getElementById('bonus-countdown').textContent=
     `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// Auto-reset at :59:00
-function checkHourReset(){
-  const now=new Date();
-  if(now.getMinutes()===59&&now.getSeconds()===0){
-    set(ref(db,'bonus'),{map:null});
-  }
-}
-
-setInterval(()=>{updateBonusCountdown();checkHourReset();},1000);
+setInterval(updateBonusCountdown,1000);
 updateBonusCountdown();
 
 function toggleKill(id,num){
