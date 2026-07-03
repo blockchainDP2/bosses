@@ -46,9 +46,9 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 
 /* BONUS EXP */
 #bonus-section{margin:0 0.75rem 1.25rem;border-radius:12px;border:1.5px solid #c8a200;background:#1a1600;padding:1rem}
-#bonus-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+#bonus-header{display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap}
 #bonus-title{font-size:14px;font-weight:500;color:#f0c000}
-#bonus-countdown{font-family:monospace;font-size:13px;color:#888}
+#bonus-countdown{font-family:monospace;font-size:13px;color:#f0c000;background:#2a2000;border:1px solid #c8a200;border-radius:4px;padding:1px 7px}
 #bonus-maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 .bonus-btn{padding:9px 10px;border-radius:8px;border:1px solid #444;background:#111;color:#aaa;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s}
 .bonus-btn:hover{background:#222;color:#fff;border-color:#888}
@@ -213,16 +213,12 @@ function playBonusAlert(){
 
 // BONUS EXP SECTION
 let activeBonus=null;
+
 function selectBonus(name){
-  document.querySelectorAll('.bonus-btn').forEach(b=>{
-    b.classList.toggle('active', b.textContent===name && activeBonus!==name);
-  });
   if(activeBonus===name){
-    activeBonus=null;
-    document.getElementById('bonus-active').textContent='Ningún mapa seleccionado';
+    set(ref(db,'bonus'),{map:null});
   } else {
-    activeBonus=name;
-    document.getElementById('bonus-active').textContent='✓ Activo: '+name;
+    set(ref(db,'bonus'),{map:name});
     playBonusAlert();
   }
 }
@@ -230,14 +226,10 @@ function selectBonus(name){
 // Countdown to :59 of current hour
 function updateBonusCountdown(){
   const now=new Date();
-  const secsLeft=59*60 - (now.getMinutes()*60 + now.getSeconds());
+  const totalSecs=now.getMinutes()*60+now.getSeconds();
+  const secsLeft=59*60-totalSecs;
   if(secsLeft<=0){
-    document.getElementById('bonus-countdown').textContent='00:00';
-    if(activeBonus!==null){
-      activeBonus=null;
-      document.querySelectorAll('.bonus-btn').forEach(b=>b.classList.remove('active'));
-      document.getElementById('bonus-active').textContent='Ningún mapa seleccionado';
-    }
+    document.getElementById('bonus-countdown').textContent='--:--';
     return;
   }
   const m=Math.floor(secsLeft/60);
@@ -245,7 +237,16 @@ function updateBonusCountdown(){
   document.getElementById('bonus-countdown').textContent=
     `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
-setInterval(updateBonusCountdown,1000);
+
+// Auto-reset at :59:00
+function checkHourReset(){
+  const now=new Date();
+  if(now.getMinutes()===59&&now.getSeconds()===0){
+    set(ref(db,'bonus'),{map:null});
+  }
+}
+
+setInterval(()=>{updateBonusCountdown();checkHourReset();},1000);
 updateBonusCountdown();
 
 function toggleKill(id,num){
@@ -326,7 +327,19 @@ window.resetBoss=resetBoss;
 window.toggleKill=toggleKill;
 window.selectBonus=selectBonus;
 
-// Firebase sync
+// Firebase sync — bonus map
+onValue(ref(db,'bonus'),snapshot=>{
+  const data=snapshot.val();
+  const name=data&&data.map?data.map:null;
+  activeBonus=name;
+  document.querySelectorAll('.bonus-btn').forEach(b=>{
+    b.classList.toggle('active',b.textContent===name);
+  });
+  document.getElementById('bonus-active').textContent=
+    name?'✓ Activo: '+name:'Ningún mapa seleccionado';
+});
+
+// Firebase sync — bosses
 const statusBar=document.getElementById('status-bar');
 onValue(ref(db,'bosses'),snapshot=>{
   const data=snapshot.val()||{};
