@@ -13,12 +13,22 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .zone-header{display:flex;align-items:center;gap:8px;margin-bottom:0.85rem}
 .zone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .zone-title{font-size:14px;font-weight:500;color:#fff}
-.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:8px}
 .boss-card{border-radius:8px;border:0.5px solid #333;background:#1a1a1a;overflow:hidden}
 .boss-btn{width:100%;padding:8px 10px 6px;background:transparent;border:none;cursor:pointer;text-align:left}
 .boss-btn:hover{background:#222}
 .boss-name{font-size:13px;font-weight:500;color:#fff;display:block;margin-bottom:1px}
 .boss-window{font-size:10px;color:#666}
+
+/* CHECK button row */
+.boss-check-row{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333;align-items:center}
+.check-btn{padding:3px 10px;font-size:11px;font-weight:700;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s;letter-spacing:1px}
+.check-btn:hover{background:#222;color:#aaa}
+.check-btn.active{color:#fff;background:#1a3a55;border-color:#4a90d9}
+.check-timer{font-family:monospace;font-size:11px;color:#4a90d9;display:none}
+.check-timer.visible{display:block}
+
+/* Boss spawn timer */
 .boss-timer{padding:6px 10px 8px;border-top:0.5px solid #333;display:none}
 .boss-timer.active{display:block}
 .timer-display{font-size:20px;font-weight:500;font-family:monospace;text-align:center;margin-bottom:2px}
@@ -36,10 +46,7 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .state-sure .timer-display{color:#639922}
 .state-sure .timer-status{color:#639922}
 .state-sure .timer-bar-fill{background:#639922}
-.boss-kills{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333}
-.kill-btn{flex:1;padding:4px;font-size:11px;font-weight:600;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s}
-.kill-btn.active{color:#fff;background:#2a5a0a;border-color:#639922}
-.kill-btn:hover:not(.active){background:#222;color:#aaa}
+
 #status-bar{text-align:center;font-size:11px;color:#555;padding:0.4rem;margin-bottom:0.5rem}
 #status-bar.connected{color:#639922}
 #status-bar.disconnected{color:#e24b4a}
@@ -62,7 +69,6 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 <p class="subtitle">Toca el nombre del boss al matarlo · rojo: muy pronto · naranja: puede haber spawneado · verde: seguro</p>
 <div id="status-bar">Conectando...</div>
 
-<!-- BONUS EXP MAP -->
 <div id="bonus-section">
   <div id="bonus-header">
     <span id="bonus-title">⭐ Bonus EXP Map</span>
@@ -98,6 +104,12 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const ZONES=[
+{id:'dragons',label:'🐉 Dragones',color:'#8B0000',bg:'#1a00000d',sorted:true,bosses:[
+{id:'antharas',name:'Antharas',min:60,max:1440},
+{id:'fafurion',name:'Fafurion',min:60,max:1440},
+{id:'lindvior',name:'Lindvior',min:60,max:1440},
+{id:'valakas',name:'Valakas',min:60,max:1440},
+]},
 {id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:false,bosses:[
 {id:'arlpeer',name:'Arlpeer',min:90,max:180},
 {id:'capaldre',name:'Capaldre',min:90,max:180},
@@ -181,14 +193,17 @@ const ZONES=[
 const bossMap={};
 ZONES.forEach(z=>z.bosses.forEach(b=>{bossMap[b.id]={...b}}));
 
-function fmtMin(m){const h=Math.floor(m/60),mn=m%60;return h>0?(mn>0?`${h}h ${mn}m`:`${h}h`):`${mn}m`}
+function fmtMin(m){
+  if(m>=60){const h=Math.floor(m/60),mn=m%60;return mn>0?`${h}h ${mn}m`:`${h}h`;}
+  return`${m}m`;
+}
 function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
 function getClass(e,min,max){if(e>=max*60)return'state-sure';if(e>=min*60)return'state-maybe';return'state-early'}
 function getStatusText(e,min,max){if(e>=max*60)return'✓ Seguro que ha spawneado';if(e>=min*60)return'⚠ Puede haber spawneado';return`Mínimo en ${fmt(min*60-e)}`}
 function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
 const state={};
-const kills={};
+const checkState={};
 
 function playBonusAlert(){
   try{
@@ -203,64 +218,52 @@ function playBonusAlert(){
       o.start(ctx.currentTime+start);
       o.stop(ctx.currentTime+start+dur);
     }
-    beep(660,0,0.12);
-    beep(880,0.15,0.12);
-    beep(1100,0.30,0.12);
-    beep(880,0.45,0.12);
-    beep(1320,0.60,0.4,0.6);
+    beep(660,0,0.12);beep(880,0.15,0.12);beep(1100,0.30,0.12);
+    beep(880,0.45,0.12);beep(1320,0.60,0.4,0.6);
   }catch(e){}
 }
 
-// BONUS EXP SECTION
+// BONUS EXP
 let activeBonus=null;
-
 function selectBonus(name){
-  if(activeBonus===name){
-    set(ref(db,'bonus'),{map:null});
-  } else {
-    set(ref(db,'bonus'),{map:name});
-    playBonusAlert();
-  }
+  if(activeBonus===name){set(ref(db,'bonus'),{map:null});}
+  else{set(ref(db,'bonus'),{map:name});playBonusAlert();}
 }
 
-// Countdown to :59 of current hour
 function updateBonusCountdown(){
   const now=new Date();
   const mins=now.getMinutes();
   const secs=now.getSeconds();
-
-  // Si estamos en el minuto 59 o más, resetear y mostrar --:--
   if(mins>=59){
     document.getElementById('bonus-countdown').textContent='--:--';
-    if(activeBonus!==null){
-      set(ref(db,'bonus'),{map:null});
-    }
+    if(activeBonus!==null){set(ref(db,'bonus'),{map:null});}
     return;
   }
-
   const secsLeft=(58-mins)*60+(60-secs);
-  const m=Math.floor(secsLeft/60);
-  const s=secsLeft%60;
+  const m=Math.floor(secsLeft/60),s=secsLeft%60;
   document.getElementById('bonus-countdown').textContent=
     `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
-
 setInterval(updateBonusCountdown,1000);
 updateBonusCountdown();
 
-function toggleKill(id,num){
-  if(!kills[id])kills[id]={1:false,2:false};
-  kills[id][num]=!kills[id][num];
-  const btn=document.getElementById('kill-'+id+'-'+num);
-  if(btn)btn.classList.toggle('active',kills[id][num]);
+// CHECK button
+function toggleCheck(id){
+  if(checkState[id]){
+    remove(ref(db,'checks/'+id));
+  } else {
+    set(ref(db,'checks/'+id),{checkedAt:Date.now()});
+  }
 }
 
-function resetKills(id){
-  kills[id]={1:false,2:false};
-  [1,2].forEach(n=>{
-    const btn=document.getElementById('kill-'+id+'-'+n);
-    if(btn)btn.classList.remove('active');
-  });
+function updateCheckTimer(id){
+  const c=checkState[id];
+  const el=document.getElementById('ctimer-'+id);
+  if(!el)return;
+  if(!c){el.className='check-timer';el.textContent='';return;}
+  const elapsed=Math.floor((Date.now()-c.checkedAt)/1000);
+  el.className='check-timer visible';
+  el.textContent='Chekeado: '+fmt(elapsed);
 }
 
 function updateCard(id){
@@ -277,15 +280,15 @@ function updateCard(id){
   document.getElementById('tbar-'+id).style.width=getBarPct(elapsed,max)+'%';
 }
 
-function killBoss(id,name){
-  const killedAt=Date.now();
-  set(ref(db,'bosses/'+id),{killedAt});
+function killBoss(id){
+  set(ref(db,'bosses/'+id),{killedAt:Date.now()});
 }
+
 function resetBoss(id,name,e){
   e.stopPropagation();
   if(!confirm('¿Confirmar reset de '+name+'?'))return;
   remove(ref(db,'bosses/'+id));
-  resetKills(id);
+  remove(ref(db,'checks/'+id));
 }
 
 // Build UI
@@ -303,13 +306,13 @@ ZONES.forEach(z=>{
     div.className='boss-card';
     div.id='card-'+b.id;
     div.innerHTML=`
-      <button class="boss-btn" onclick="killBoss('${b.id}','${b.name.replace(/'/g,"\\'")}')">
+      <button class="boss-btn" onclick="killBoss('${b.id}')">
         <span class="boss-name">${b.name}</span>
         <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
       </button>
-      <div class="boss-kills">
-        <button class="kill-btn" id="kill-${b.id}-1" onclick="toggleKill('${b.id}',1)">1</button>
-        <button class="kill-btn" id="kill-${b.id}-2" onclick="toggleKill('${b.id}',2)">2</button>
+      <div class="boss-check-row">
+        <button class="check-btn" id="cbtn-${b.id}" onclick="toggleCheck('${b.id}')">C</button>
+        <span class="check-timer" id="ctimer-${b.id}"></span>
       </div>
       <div class="boss-timer" id="timer-${b.id}">
         <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
@@ -323,10 +326,10 @@ ZONES.forEach(z=>{
 
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
-window.toggleKill=toggleKill;
+window.toggleCheck=toggleCheck;
 window.selectBonus=selectBonus;
 
-// Firebase sync — bonus map
+// Firebase sync — bonus
 onValue(ref(db,'bonus'),snapshot=>{
   const data=snapshot.val();
   const name=data&&data.map?data.map:null;
@@ -343,15 +346,31 @@ const statusBar=document.getElementById('status-bar');
 onValue(ref(db,'bosses'),snapshot=>{
   const data=snapshot.val()||{};
   Object.keys(bossMap).forEach(id=>{
-    if(data[id]){state[id]={killedAt:data[id].killedAt,min:bossMap[id].min,max:bossMap[id].max};}
+    if(data[id]){state[id]={killedAt:data[id].killedAt};}
     else{delete state[id];}
     updateCard(id);
   });
   statusBar.textContent='● Conectado — sincronizado con Firebase';
   statusBar.className='connected';
-},function(error){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
+},function(){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
 
-setInterval(()=>Object.keys(state).forEach(updateCard),1000);
+// Firebase sync — checks
+onValue(ref(db,'checks'),snapshot=>{
+  const data=snapshot.val()||{};
+  Object.keys(bossMap).forEach(id=>{
+    if(data[id]){checkState[id]={checkedAt:data[id].checkedAt};}
+    else{delete checkState[id];}
+    const btn=document.getElementById('cbtn-'+id);
+    if(btn)btn.classList.toggle('active',!!checkState[id]);
+    updateCheckTimer(id);
+  });
+});
+
+// Tick
+setInterval(()=>{
+  Object.keys(state).forEach(updateCard);
+  Object.keys(checkState).forEach(updateCheckTimer);
+},1000);
 </script>
 </body>
 </html>
