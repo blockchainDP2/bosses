@@ -20,7 +20,11 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .boss-name{font-size:13px;font-weight:500;color:#fff;display:block;margin-bottom:1px}
 .boss-window{font-size:10px;color:#666}
 
-/* CHECK button row */
+/* Subsección dentro de zona */
+.subsection{border-radius:8px;border:1px solid #444;padding:8px;margin-bottom:10px}
+.subsection-label{font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* CHECK */
 .boss-check-row{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333;align-items:center}
 .check-btn{padding:3px 10px;font-size:11px;font-weight:700;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s;letter-spacing:1px}
 .check-btn:hover{background:#222;color:#aaa}
@@ -50,17 +54,6 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 #status-bar{text-align:center;font-size:11px;color:#555;padding:0.4rem;margin-bottom:0.5rem}
 #status-bar.connected{color:#639922}
 #status-bar.disconnected{color:#e24b4a}
-
-/* BONUS EXP */
-#bonus-section{margin:0 0.75rem 1.25rem;border-radius:12px;border:1.5px solid #c8a200;background:#1a1600;padding:1rem}
-#bonus-header{display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap}
-#bonus-title{font-size:14px;font-weight:500;color:#f0c000}
-#bonus-countdown{font-family:monospace;font-size:13px;color:#f0c000;background:#2a2000;border:1px solid #c8a200;border-radius:4px;padding:1px 7px}
-#bonus-maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.bonus-btn{padding:9px 10px;border-radius:8px;border:1px solid #444;background:#111;color:#aaa;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s}
-.bonus-btn:hover{background:#222;color:#fff;border-color:#888}
-.bonus-btn.active{background:#3a2e00;border-color:#c8a200;color:#f0c000}
-#bonus-active{font-size:11px;color:#888;text-align:center;margin-top:0.6rem;min-height:16px}
 </style>
 </head>
 <body>
@@ -68,22 +61,6 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 <h1>⚔ Boss Tracker</h1>
 <p class="subtitle">Toca el nombre del boss al matarlo · rojo: muy pronto · naranja: puede haber spawneado · verde: seguro</p>
 <div id="status-bar">Conectando...</div>
-
-<div id="bonus-section">
-  <div id="bonus-header">
-    <span id="bonus-title">⭐ Bonus EXP Map</span>
-    <span id="bonus-countdown">--:--</span>
-  </div>
-  <div id="bonus-maps">
-    <button class="bonus-btn" onclick="selectBonus('Giran Prison')">Giran Prison</button>
-    <button class="bonus-btn" onclick="selectBonus('Giran Dungeon')">Giran Dungeon</button>
-    <button class="bonus-btn" onclick="selectBonus('Forgotten Island')">Forgotten Island</button>
-    <button class="bonus-btn" onclick="selectBonus('TOI')">TOI</button>
-    <button class="bonus-btn" onclick="selectBonus('Deep Sea')">Deep Sea</button>
-  </div>
-  <div id="bonus-active">Ningún mapa seleccionado</div>
-</div>
-
 <div id="root"></div>
 
 <script type="module">
@@ -103,95 +80,85 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// Zones — aden has a special subsection
 const ZONES=[
 {id:'dragons',label:'🐉 Dragones',color:'#8B0000',bg:'#1a00000d',sorted:true,bosses:[
-{id:'antharas',name:'Antharas',min:60,max:1440},
-{id:'fafurion',name:'Fafurion',min:60,max:1440},
-{id:'lindvior',name:'Lindvior',min:60,max:1440},
-{id:'valakas',name:'Valakas',min:60,max:1440},
+  {id:'antharas',name:'Antharas',min:60,max:1440},
+  {id:'fafurion',name:'Fafurion',min:60,max:1440},
+  {id:'lindvior',name:'Lindvior',min:60,max:1440},
+  {id:'valakas',name:'Valakas',min:60,max:1440},
 ]},
-{id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:false,bosses:[
-{id:'arlpeer',name:'Arlpeer',min:90,max:180},
-{id:'capaldre',name:'Capaldre',min:90,max:180},
-{id:'lycante',name:'Lycante',min:90,max:180},
-{id:'nekrose',name:'Nekrose',min:90,max:180},
-{id:'orukuce',name:'Orukuce',min:90,max:180},
-{id:'kurtz',name:'Kurtz',min:120,max:240},
-]},
-{id:'aden',label:'Aden',color:'#185FA5',bg:'#E6F1FB0d',sorted:true,bosses:[
-{id:'cerenis',name:'Cerenis',min:90,max:240},
-{id:'kenrauhel',name:'Ken Rauhel',min:90,max:240},
-]},
-{id:'mainland',label:'Mainland Aden',color:'#534AB7',bg:'#EEEDFE0d',sorted:true,bosses:[
-{id:'ancientgiant',name:'Ancient Giant',min:90,max:240},
-{id:'bigfoot',name:'Bigfoot Mayo',min:150,max:300},
-{id:'darkelder',name:'Dark Elder',min:10,max:120},
-{id:'doppelganger',name:'Doppelganger Boss',min:90,max:240},
-{id:'faruuk',name:'Faruuk',min:90,max:240},
-{id:'antqueen',name:'Giant Ant Queen',min:210,max:420},
-{id:'phoenix',name:'Phoenix',min:210,max:420},
-]},
-{id:'diad',label:'Diad Fortress',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
-{id:'baranka',name:'Dread King Baranka',min:90,max:240},
-{id:'laia',name:'Dread Queen Laia',min:90,max:240},
-]},
+{id:'aden',label:'Aden',color:'#185FA5',bg:'#E6F1FB0d',special:'aden',sorted:false,
+  subsection:[
+    {id:'kenrauhel',name:'Ken Rauhel',min:90,max:240},
+    {id:'cerenis',name:'Cerenis',min:90,max:240},
+  ],
+  bosses:[
+    {id:'ancientgiant',name:'Ancient Giant',min:90,max:240},
+    {id:'antqueen',name:'Giant Ant Queen',min:210,max:420},
+    {id:'phoenix',name:'Phoenix',min:210,max:420},
+  ]
+},
 {id:'toi',label:'TOI',color:'#888',bg:'#2220',sorted:false,bosses:[
-{id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
-{id:'seer',name:'Seer',min:150,max:300},
-{id:'vampire',name:'Vampire',min:150,max:300},
-{id:'zombielord',name:'Zombie Lord',min:150,max:300},
-{id:'cougar',name:'Cougar',min:150,max:300},
-{id:'mummylord',name:'Mummy Lord',min:150,max:300},
-{id:'iris',name:'Iris',min:150,max:300},
-{id:'knightvald',name:'Knight Vald',min:150,max:300},
-{id:'lich',name:'Lich',min:150,max:300},
+  {id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
+  {id:'seer',name:'Seer',min:150,max:300},
+  {id:'vampire',name:'Vampire',min:150,max:300},
+  {id:'zombielord',name:'Zombie Lord',min:150,max:300},
+  {id:'cougar',name:'Cougar',min:150,max:300},
+  {id:'mummylord',name:'Mummy Lord',min:150,max:300},
+  {id:'iris',name:'Iris',min:150,max:300},
+  {id:'knightvald',name:'Knight Vald',min:150,max:300},
+  {id:'lich',name:'Lich',min:150,max:300},
 ]},
 {id:'gludio',label:'Gludio Dungeon',color:'#534AB7',bg:'#EEEDFE0d',sorted:false,bosses:[
-{id:'deathknight5f',name:'Death Knight 5f',min:210,max:420},
-{id:'deathknight6f',name:'Death Knight 6f',min:210,max:420},
-{id:'deathknight7f',name:'Death Knight 7f',min:210,max:420},
-{id:'loscaspas',name:'Los Caspas',min:30,max:60},
-{id:'necromancer',name:'Necromancer',min:30,max:60},
+  {id:'deathknight5f',name:'Death Knight 5f',min:210,max:420},
+  {id:'deathknight6f',name:'Death Knight 6f',min:210,max:420},
+  {id:'deathknight7f',name:'Death Knight 7f',min:210,max:420},
+]},
+{id:'diad',label:'Diad Fortress',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
+  {id:'baranka',name:'Dread King Baranka',min:90,max:240},
+  {id:'laia',name:'Dread Queen Laia',min:90,max:240},
 ]},
 {id:'karma',label:'Karma',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
-{id:'chaos',name:'Chaos',min:210,max:420},
-{id:'valrok',name:'Valrok',min:210,max:420},
+  {id:'chaos',name:'Chaos',min:210,max:420},
+  {id:'valrok',name:'Valrok',min:210,max:420},
 ]},
 {id:'otros',label:'Otros',color:'#555',bg:'#1a1a1a',sorted:true,bosses:[
-{id:'baphomet',name:'Baphomet (TI 2f)',min:150,max:300},
-{id:'beleth',name:'Beleth (Windawood 2f)',min:150,max:300},
-{id:'demon',name:'Demon (Ivory Tower 8f)',min:150,max:300},
-{id:'diamondgolem',name:'Diamond Golem of Maino (Dwarf Mine)',min:210,max:420},
-{id:'faust',name:'Faust (Giran Prison)',min:90,max:180},
-{id:'glarielle',name:'Glarielle (Elven Forest)',min:150,max:300},
-{id:'shellman',name:'Shellman (Abyss Lake)',min:90,max:240},
-{id:'unicorn',name:'Unicorn',min:20,max:120},
+  {id:'baphomet',name:'Baphomet',min:150,max:300},
+  {id:'beleth',name:'Beleth',min:150,max:300},
+  {id:'diamondgolem',name:'Diamond Golem',min:210,max:420},
+  {id:'glarielle',name:'Glarielle',min:150,max:300},
 ]},
-{id:'forgotten',label:'Forgotten Island',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
-{id:'forgottenmambo',name:'Forgotten Mambo Rabbit',min:90,max:240},
-{id:'greaterminotaur',name:'Greater Minotaur',min:90,max:240},
-{id:'mainoshaman',name:'Maino Shaman',min:210,max:420},
+{id:'talking',label:'Talking Island',color:'#3B6D11',bg:'#EAF3DE0d',sorted:false,bosses:[
+  {id:'arlpeer',name:'Arlpeer',min:90,max:180},
+  {id:'capaldre',name:'Capaldre',min:90,max:180},
+  {id:'lycante',name:'Lycante',min:90,max:180},
+  {id:'nekrose',name:'Nekrose',min:90,max:180},
+  {id:'orukuce',name:'Orukuce',min:90,max:180},
+  {id:'kurtz',name:'Kurtz',min:120,max:240},
 ]},
 {id:'heine',label:'Heine 4F',color:'#854F0B',bg:'#FAEEDA0d',sorted:true,bosses:[
-{id:'giantworm',name:'Giant Worm',min:60,max:120},
-{id:'kapu',name:'Kapu',min:60,max:120},
-{id:'seadancer',name:'Sea Dancer',min:30,max:60},
-{id:'spiritwater',name:'Spirit of Water',min:60,max:120},
+  {id:'giantworm',name:'Giant Worm',min:60,max:120},
+  {id:'kapu',name:'Kapu',min:60,max:120},
+  {id:'seadancer',name:'Sea Dancer',min:30,max:60},
+  {id:'spiritwater',name:'Spirit of Water',min:60,max:120},
 ]},
 {id:'deepsea',label:'Deep Sea Grave of Spirit',color:'#0F6E56',bg:'#E1F5EE0d',sorted:true,bosses:[
-{id:'chiefmermaid',name:'Chief Mermaid',min:210,max:420},
-{id:'giantsquid',name:'Great King Squid',min:210,max:420},
+  {id:'chiefmermaid',name:'Chief Mermaid',min:210,max:420},
+  {id:'giantsquid',name:'Great King Squid',min:210,max:420},
 ]},
 {id:'pirate',label:'Pirate Island',color:'#993C1D',bg:'#FAECE70d',sorted:true,bosses:[
-{id:'abyssmaster',name:'Abyss Master',min:150,max:300},
-{id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
-{id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
-{id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
+  {id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
+  {id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
+  {id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
 ]},
 ];
 
 const bossMap={};
-ZONES.forEach(z=>z.bosses.forEach(b=>{bossMap[b.id]={...b}}));
+ZONES.forEach(z=>{
+  if(z.subsection)z.subsection.forEach(b=>{bossMap[b.id]={...b}});
+  z.bosses.forEach(b=>{bossMap[b.id]={...b}});
+});
 
 function fmtMin(m){
   if(m>=60){const h=Math.floor(m/60),mn=m%60;return mn>0?`${h}h ${mn}m`:`${h}h`;}
@@ -204,67 +171,6 @@ function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
 const state={};
 const checkState={};
-
-function playBonusAlert(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    function beep(freq,start,dur,vol){
-      const o=ctx.createOscillator();
-      const g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.value=freq;
-      g.gain.setValueAtTime(vol||0.5,ctx.currentTime+start);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
-      o.start(ctx.currentTime+start);
-      o.stop(ctx.currentTime+start+dur);
-    }
-    beep(660,0,0.12);beep(880,0.15,0.12);beep(1100,0.30,0.12);
-    beep(880,0.45,0.12);beep(1320,0.60,0.4,0.6);
-  }catch(e){}
-}
-
-// BONUS EXP
-let activeBonus=null;
-function selectBonus(name){
-  if(activeBonus===name){set(ref(db,'bonus'),{map:null});}
-  else{set(ref(db,'bonus'),{map:name});playBonusAlert();}
-}
-
-function updateBonusCountdown(){
-  const now=new Date();
-  const mins=now.getMinutes();
-  const secs=now.getSeconds();
-  if(mins>=59){
-    document.getElementById('bonus-countdown').textContent='--:--';
-    if(activeBonus!==null){set(ref(db,'bonus'),{map:null});}
-    return;
-  }
-  const secsLeft=(58-mins)*60+(60-secs);
-  const m=Math.floor(secsLeft/60),s=secsLeft%60;
-  document.getElementById('bonus-countdown').textContent=
-    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-setInterval(updateBonusCountdown,1000);
-updateBonusCountdown();
-
-// CHECK button
-function toggleCheck(id){
-  if(checkState[id]){
-    remove(ref(db,'checks/'+id));
-  } else {
-    set(ref(db,'checks/'+id),{checkedAt:Date.now()});
-  }
-}
-
-function updateCheckTimer(id){
-  const c=checkState[id];
-  const el=document.getElementById('ctimer-'+id);
-  if(!el)return;
-  if(!c){el.className='check-timer';el.textContent='';return;}
-  const elapsed=Math.floor((Date.now()-c.checkedAt)/1000);
-  el.className='check-timer visible';
-  el.textContent='Chekeado: '+fmt(elapsed);
-}
 
 function updateCard(id){
   const s=state[id];
@@ -280,66 +186,86 @@ function updateCard(id){
   document.getElementById('tbar-'+id).style.width=getBarPct(elapsed,max)+'%';
 }
 
+function updateCheckTimer(id){
+  const c=checkState[id];
+  const el=document.getElementById('ctimer-'+id);
+  if(!el)return;
+  if(!c){el.className='check-timer';el.textContent='';return;}
+  const elapsed=Math.floor((Date.now()-c.checkedAt)/1000);
+  el.className='check-timer visible';
+  el.textContent='Chekeado: '+fmt(elapsed);
+}
+
 function killBoss(id){
   set(ref(db,'bosses/'+id),{killedAt:Date.now()});
 }
-
 function resetBoss(id,name,e){
   e.stopPropagation();
   if(!confirm('¿Confirmar reset de '+name+'?'))return;
   remove(ref(db,'bosses/'+id));
   remove(ref(db,'checks/'+id));
 }
+function toggleCheck(id){
+  if(checkState[id]){remove(ref(db,'checks/'+id));}
+  else{set(ref(db,'checks/'+id),{checkedAt:Date.now()});}
+}
+
+function makeBossCard(b){
+  const div=document.createElement('div');
+  div.className='boss-card';
+  div.id='card-'+b.id;
+  div.innerHTML=`
+    <button class="boss-btn" onclick="killBoss('${b.id}')">
+      <span class="boss-name">${b.name}</span>
+      <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
+    </button>
+    <div class="boss-check-row">
+      <button class="check-btn" id="cbtn-${b.id}" onclick="toggleCheck('${b.id}')">C</button>
+      <span class="check-timer" id="ctimer-${b.id}"></span>
+    </div>
+    <div class="boss-timer" id="timer-${b.id}">
+      <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
+      <div class="timer-status" id="tstat-${b.id}"></div>
+      <div class="timer-bar"><div class="timer-bar-fill" id="tbar-${b.id}" style="width:0%"></div></div>
+      <button class="reset-btn" onclick="resetBoss('${b.id}','${b.name.replace(/'/g,"\\'")}',event)">↺ Resetear</button>
+    </div>`;
+  return div;
+}
 
 // Build UI
 const root=document.getElementById('root');
 ZONES.forEach(z=>{
-  const bosses=z.sorted?[...z.bosses].sort((a,b)=>a.name.localeCompare(b.name)):z.bosses;
   const zDiv=document.createElement('div');
   zDiv.className='zone';
   zDiv.style.cssText=`border-color:${z.color};background:${z.bg}`;
-  zDiv.innerHTML=`<div class="zone-header"><div class="zone-dot" style="background:${z.color}"></div><span class="zone-title">${z.label}</span></div><div class="boss-grid" id="grid-${z.id}"></div>`;
+  zDiv.innerHTML=`<div class="zone-header"><div class="zone-dot" style="background:${z.color}"></div><span class="zone-title">${z.label}</span></div>`;
+
+  // Subsection (e.g. Ken Rauhel / Cerenis in Aden)
+  if(z.subsection){
+    const sub=document.createElement('div');
+    sub.className='subsection';
+    sub.style.cssText=`border-color:${z.color}55`;
+    sub.innerHTML=`<div class="subsection-label">Jefes de zona</div>`;
+    const subGrid=document.createElement('div');
+    subGrid.className='boss-grid';
+    z.subsection.forEach(b=>subGrid.appendChild(makeBossCard(b)));
+    sub.appendChild(subGrid);
+    zDiv.appendChild(sub);
+  }
+
+  // Main boss grid
+  const bosses=z.sorted?[...z.bosses].sort((a,b)=>a.name.localeCompare(b.name)):z.bosses;
+  const grid=document.createElement('div');
+  grid.className='boss-grid';
+  grid.id='grid-'+z.id;
+  bosses.forEach(b=>grid.appendChild(makeBossCard(b)));
+  zDiv.appendChild(grid);
   root.appendChild(zDiv);
-  const grid=document.getElementById('grid-'+z.id);
-  bosses.forEach(b=>{
-    const div=document.createElement('div');
-    div.className='boss-card';
-    div.id='card-'+b.id;
-    div.innerHTML=`
-      <button class="boss-btn" onclick="killBoss('${b.id}')">
-        <span class="boss-name">${b.name}</span>
-        <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
-      </button>
-      <div class="boss-check-row">
-        <button class="check-btn" id="cbtn-${b.id}" onclick="toggleCheck('${b.id}')">C</button>
-        <span class="check-timer" id="ctimer-${b.id}"></span>
-      </div>
-      <div class="boss-timer" id="timer-${b.id}">
-        <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
-        <div class="timer-status" id="tstat-${b.id}"></div>
-        <div class="timer-bar"><div class="timer-bar-fill" id="tbar-${b.id}" style="width:0%"></div></div>
-        <button class="reset-btn" onclick="resetBoss('${b.id}','${b.name.replace(/'/g,"\\'")}',event)">↺ Resetear</button>
-      </div>`;
-    grid.appendChild(div);
-  });
 });
 
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
 window.toggleCheck=toggleCheck;
-window.selectBonus=selectBonus;
-
-// Firebase sync — bonus
-onValue(ref(db,'bonus'),snapshot=>{
-  const data=snapshot.val();
-  const name=data&&data.map?data.map:null;
-  activeBonus=name;
-  document.querySelectorAll('.bonus-btn').forEach(b=>{
-    b.classList.toggle('active',b.textContent===name);
-  });
-  document.getElementById('bonus-active').textContent=
-    name?'✓ Activo: '+name:'Ningún mapa seleccionado';
-});
 
 // Firebase sync — bosses
 const statusBar=document.getElementById('status-bar');
