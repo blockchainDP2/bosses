@@ -10,29 +10,35 @@ body{font-family:system-ui,sans-serif;background:#111;color:#eee;padding-bottom:
 h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;color:#fff}
 .subtitle{font-size:12px;color:#888;text-align:center;margin-bottom:1.25rem}
 .zone{border-radius:12px;border:1.5px solid;padding:1rem;margin:0 0.75rem 1.25rem}
-.zone-header{display:flex;align-items:center;gap:8px;margin-bottom:0.85rem}
+.zone-header{display:flex;align-items:center;gap:8px;margin-bottom:0.85rem;flex-wrap:wrap}
 .zone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.zone-title{font-size:14px;font-weight:500;color:#fff}
+.zone-title{font-size:14px;font-weight:500;color:#fff;flex:1}
+.cycle-info{font-size:10px;color:#666;font-family:monospace}
 .boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:8px}
+.subsection{border-radius:8px;border:1px solid #333;padding:8px;margin-bottom:10px}
+.subsection-label{font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
 .boss-card{border-radius:8px;border:0.5px solid #333;background:#1a1a1a;overflow:hidden}
 .boss-btn{width:100%;padding:8px 10px 6px;background:transparent;border:none;cursor:pointer;text-align:left}
 .boss-btn:hover{background:#222}
 .boss-name{font-size:13px;font-weight:500;color:#fff;display:block;margin-bottom:1px}
 .boss-window{font-size:10px;color:#666}
 
-/* Subsección dentro de zona */
-.subsection{border-radius:8px;border:1px solid #444;padding:8px;margin-bottom:10px}
-.subsection-label{font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+/* Cycle buttons row */
+.boss-cycle-row{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333}
+.cycle-btn{flex:1;padding:4px 2px;font-size:10px;font-weight:600;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s;text-align:center;line-height:1.3}
+.cycle-btn:hover{background:#222;color:#aaa}
+.cycle-btn.active-prev{color:#fff;background:#3a2000;border-color:#c87020}
+.cycle-btn.active-curr{color:#fff;background:#1a3a55;border-color:#4a90d9}
 
-/* CHECK */
+/* Check button */
 .boss-check-row{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333;align-items:center}
-.check-btn{padding:3px 10px;font-size:11px;font-weight:700;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s;letter-spacing:1px}
+.check-btn{padding:3px 10px;font-size:11px;font-weight:700;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s}
 .check-btn:hover{background:#222;color:#aaa}
 .check-btn.active{color:#fff;background:#1a3a55;border-color:#4a90d9}
 .check-timer{font-family:monospace;font-size:11px;color:#4a90d9;display:none}
 .check-timer.visible{display:block}
 
-/* Boss spawn timer */
+/* Spawn timer */
 .boss-timer{padding:6px 10px 8px;border-top:0.5px solid #333;display:none}
 .boss-timer.active{display:block}
 .timer-display{font-size:20px;font-weight:500;font-family:monospace;text-align:center;margin-bottom:2px}
@@ -57,9 +63,8 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 </style>
 </head>
 <body>
-
 <h1>⚔ Boss Tracker</h1>
-<p class="subtitle">Toca el nombre del boss al matarlo · rojo: muy pronto · naranja: puede haber spawneado · verde: seguro</p>
+<p class="subtitle">Toca el nombre del boss al matarlo · Ant: ciclo anterior · Act: ciclo actual · C: chekeado</p>
 <div id="status-bar">Conectando...</div>
 <div id="root"></div>
 
@@ -76,74 +81,112 @@ const firebaseConfig = {
   messagingSenderId: "226806534411",
   appId: "1:226806534411:web:652d94427fd14a9bba520e"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Zones — aden has a special subsection
+// min/max in minutes. Cycle repeat / window length from official page.
 const ZONES=[
-{id:'dragons',label:'🐉 Dragones',color:'#8B0000',bg:'#1a00000d',sorted:true,bosses:[
-  {id:'antharas',name:'Antharas',min:60,max:1440},
-  {id:'fafurion',name:'Fafurion',min:60,max:1440},
-  {id:'lindvior',name:'Lindvior',min:60,max:1440},
-  {id:'valakas',name:'Valakas',min:60,max:1440},
-]},
-{id:'aden',label:'Aden',color:'#185FA5',bg:'#E6F1FB0d',special:'aden',sorted:false,
+{id:'aden',label:'Aden Mainland Cycle',color:'#185FA5',bg:'#E6F1FB0d',cycle:'Repeat 4h · Window 2h 30m',
   subsection:[
     {id:'kenrauhel',name:'Ken Rauhel',min:90,max:240},
     {id:'cerenis',name:'Cerenis',min:90,max:240},
   ],
-  bosses:[
+  sorted:true,bosses:[
     {id:'ancientgiant',name:'Ancient Giant',min:90,max:240},
+    {id:'baranka',name:'Dread King Baranka',min:90,max:240},
+    {id:'laia',name:'Dread Queen Laia',min:90,max:240},
+    {id:'doppelganger',name:'Doppelganger Boss',min:90,max:240},
+  ]
+},
+{id:'zenith',label:'Zenith Queen Cycle',color:'#8B0000',bg:'#1a00000d',cycle:'Repeat 2h 40m · Window 1h 20m',
+  sorted:false,bosses:[
+    {id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
+  ]
+},
+{id:'oren',label:'Oren / Tower Cycle',color:'#888',bg:'#2220',cycle:'Repeat 5h · Window 2h 30m',
+  subsection:[
+    {id:'seer',name:'Seer',min:150,max:300},
+    {id:'vampire',name:'Vampire',min:150,max:300},
+    {id:'zombielord',name:'Zombie Lord',min:150,max:300},
+    {id:'cougar',name:'Cougar',min:150,max:300},
+    {id:'mummylord',name:'Mummy Lord',min:150,max:300},
+    {id:'iris',name:'Iris',min:150,max:300},
+    {id:'knightvald',name:'Knight Vald',min:150,max:300},
+    {id:'lich',name:'Lich',min:150,max:300},
+    {id:'grimreaper',name:'Grim Reaper',min:150,max:300},
+  ],
+  sorted:true,bosses:[
+    {id:'counttaros',name:'Count Taros',min:150,max:300},
+    {id:'icedemon',name:'Ice Demon',min:150,max:300},
+    {id:'icequeen',name:'Ice Queen',min:150,max:300},
+  ]
+},
+{id:'dk',label:'Death Knight Cycle',color:'#534AB7',bg:'#EEEDFE0d',cycle:'Repeat 7h · Window 3h 30m',
+  sorted:false,bosses:[
+    {id:'deathknight5f',name:'DK 5f',min:210,max:420},
+    {id:'deathknight6f',name:'DK 6f',min:210,max:420},
+    {id:'deathknight7f',name:'DK 7f',min:210,max:420},
     {id:'antqueen',name:'Giant Ant Queen',min:210,max:420},
     {id:'phoenix',name:'Phoenix',min:210,max:420},
   ]
 },
-{id:'toi',label:'TOI',color:'#888',bg:'#2220',sorted:false,bosses:[
-  {id:'zenithqueen',name:'Zenith Queen',min:80,max:160},
-  {id:'seer',name:'Seer',min:150,max:300},
-  {id:'vampire',name:'Vampire',min:150,max:300},
-  {id:'zombielord',name:'Zombie Lord',min:150,max:300},
-  {id:'cougar',name:'Cougar',min:150,max:300},
-  {id:'mummylord',name:'Mummy Lord',min:150,max:300},
-  {id:'iris',name:'Iris',min:150,max:300},
-  {id:'knightvald',name:'Knight Vald',min:150,max:300},
-  {id:'lich',name:'Lich',min:150,max:300},
-]},
-{id:'lastavad',label:'Lastavad',color:'#6B3FA0',bg:'#EDE7F60d',sorted:false,bosses:[
-  {id:'kenya',name:'Kenya',min:210,max:420},
-  {id:'endias',name:'Endias',min:210,max:420},
-  {id:'viatas',name:'Viatas',min:210,max:420},
-  {id:'edea',name:'Edea',min:210,max:420},
-  {id:'barode',name:'Barode',min:210,max:420},
-  {id:'tiames',name:'Tiames',min:210,max:420},
-  {id:'ramias',name:'Ramias',min:210,max:420},
-  {id:'baromes',name:'Baromes',min:210,max:420},
-]},
-{id:'gludio',label:'Gludio Dungeon',color:'#534AB7',bg:'#EEEDFE0d',sorted:false,bosses:[
-  {id:'deathknight5f',name:'Death Knight 5f',min:210,max:420},
-  {id:'deathknight6f',name:'Death Knight 6f',min:210,max:420},
-  {id:'deathknight7f',name:'Death Knight 7f',min:210,max:420},
-]},
-{id:'diad',label:'Diad Fortress',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
-  {id:'baranka',name:'Dread King Baranka',min:90,max:240},
-  {id:'laia',name:'Dread Queen Laia',min:90,max:240},
-]},
-{id:'karma',label:'Karma',color:'#993556',bg:'#FBEAF00d',sorted:true,bosses:[
-  {id:'chaos',name:'Chaos',min:210,max:420},
-  {id:'valrok',name:'Valrok',min:210,max:420},
-]},
-{id:'otros',label:'Otros',color:'#555',bg:'#1a1a1a',sorted:true,bosses:[
-  {id:'baphomet',name:'Baphomet',min:150,max:300},
-  {id:'beleth',name:'Beleth',min:150,max:300},
-  {id:'diamondgolem',name:'Diamond Golem',min:210,max:420},
-  {id:'glarielle',name:'Glarielle',min:150,max:300},
-]},
-{id:'pirate',label:'Pirate Island',color:'#993C1D',bg:'#FAECE70d',sorted:true,bosses:[
-  {id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
-  {id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
-  {id:'spiritdrake',name:'Spirit of Drake',min:150,max:300},
-]},
+{id:'karma',label:'Karma',color:'#993556',bg:'#FBEAF00d',cycle:'Repeat 7h · Window 3h 30m',
+  sorted:true,bosses:[
+    {id:'chaos',name:'Chaos',min:210,max:420},
+    {id:'varlok',name:'Varlok',min:210,max:420},
+    {id:'death',name:'Death',min:210,max:420},
+    {id:'yahee',name:'Yahee',min:210,max:420},
+  ]
+},
+{id:'ti',label:'TI',color:'#3B6D11',bg:'#EAF3DE0d',cycle:'Repeat 3h · Window 1h 30m',
+  sorted:false,bosses:[
+    {id:'arlpeer',name:'Arlpeer',min:90,max:180},
+    {id:'capaldre',name:'Capalre',min:90,max:180},
+    {id:'faust',name:'Faust',min:90,max:180},
+    {id:'lycante',name:'Likante',min:90,max:180},
+    {id:'nekrose',name:'Nekrose',min:90,max:180},
+    {id:'orukuce',name:'Orukuce',min:90,max:180},
+  ]
+},
+{id:'kurtz',label:'Kurtz Cycle',color:'#854F0B',bg:'#FAEEDA0d',cycle:'Repeat 4h · Window 2h',
+  sorted:false,bosses:[
+    {id:'kurtz',name:'Kurtz',min:120,max:240},
+  ]
+},
+{id:'baphomet',label:'Baphomet / Beleth Cycle',color:'#0F6E56',bg:'#E1F5EE0d',cycle:'Repeat 5h · Window 2h 30m',
+  sorted:true,bosses:[
+    {id:'beleth',name:'Beleth',min:150,max:300},
+    {id:'glarielle',name:'Glarielle',min:150,max:300},
+  ]
+},
+{id:'caspa',label:'Caspa, PI & DI Cycle',color:'#993C1D',bg:'#FAECE70d',cycle:'Repeat 1h · Window 30m',
+  sorted:false,bosses:[
+    {id:'caspas',name:'Caspas',min:30,max:60},
+    {id:'greatspirit',name:'Great Spirit',min:30,max:60},
+    {id:'mambogreen',name:'Mambo Rabbit Orange',min:30,max:60},
+    {id:'mambopink',name:'Mambo Rabbit Pink',min:30,max:60},
+  ]
+},
+{id:'special',label:'Special Boss Cycle',color:'#6B3FA0',bg:'#EDE7F60d',cycle:'Repeat 7h · Window 3h 30m',
+  sorted:false,bosses:[
+    {id:'kenya',name:'Kenya',min:210,max:420},
+    {id:'endias',name:'Endias',min:210,max:420},
+    {id:'viatas',name:'Viatas',min:210,max:420},
+    {id:'edea',name:'Edea',min:210,max:420},
+    {id:'barode',name:'Barode',min:210,max:420},
+    {id:'tiames',name:'Tiames',min:210,max:420},
+    {id:'ramias',name:'Ramias',min:210,max:420},
+    {id:'baromes',name:'Baromes',min:210,max:420},
+  ]
+},
+{id:'dragons',label:'Dragon Cycle',color:'#8B0000',bg:'#2a00000d',cycle:'Repeat 24h · Window 23h',
+  sorted:true,bosses:[
+    {id:'antharas',name:'Antharas',min:60,max:1440},
+    {id:'fafurion',name:'Fafurion',min:60,max:1440},
+    {id:'lindvior',name:'Lindvior',min:60,max:1440},
+    {id:'valakas',name:'Valakas',min:60,max:1440},
+  ]
+},
 ];
 
 const bossMap={};
@@ -163,6 +206,7 @@ function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
 const state={};
 const checkState={};
+const cycleState={};
 
 function updateCard(id){
   const s=state[id];
@@ -185,21 +229,36 @@ function updateCheckTimer(id){
   if(!c){el.className='check-timer';el.textContent='';return;}
   const elapsed=Math.floor((Date.now()-c.checkedAt)/1000);
   el.className='check-timer visible';
-  el.textContent='Chekeado: '+fmt(elapsed);
+  el.textContent='C: '+fmt(elapsed);
 }
 
-function killBoss(id){
-  set(ref(db,'bosses/'+id),{killedAt:Date.now()});
-}
+function killBoss(id){set(ref(db,'bosses/'+id),{killedAt:Date.now()});}
+
 function resetBoss(id,name,e){
   e.stopPropagation();
   if(!confirm('¿Confirmar reset de '+name+'?'))return;
   remove(ref(db,'bosses/'+id));
   remove(ref(db,'checks/'+id));
+  remove(ref(db,'cycles/'+id));
 }
+
 function toggleCheck(id){
   if(checkState[id]){remove(ref(db,'checks/'+id));}
   else{set(ref(db,'checks/'+id),{checkedAt:Date.now()});}
+}
+
+function toggleCycle(id,which){
+  const cur=cycleState[id];
+  if(cur===which){remove(ref(db,'cycles/'+id));}
+  else{set(ref(db,'cycles/'+id),{cycle:which});}
+}
+
+function updateCycleBtns(id){
+  const cur=cycleState[id];
+  const prev=document.getElementById('cprev-'+id);
+  const curr=document.getElementById('ccurr-'+id);
+  if(prev){prev.classList.toggle('active-prev',cur==='prev');}
+  if(curr){curr.classList.toggle('active-curr',cur==='curr');}
 }
 
 function makeBossCard(b){
@@ -211,6 +270,10 @@ function makeBossCard(b){
       <span class="boss-name">${b.name}</span>
       <span class="boss-window">${fmtMin(b.min)} – ${fmtMin(b.max)}</span>
     </button>
+    <div class="boss-cycle-row">
+      <button class="cycle-btn" id="cprev-${b.id}" onclick="toggleCycle('${b.id}','prev')">Ant</button>
+      <button class="cycle-btn" id="ccurr-${b.id}" onclick="toggleCycle('${b.id}','curr')">Act</button>
+    </div>
     <div class="boss-check-row">
       <button class="check-btn" id="cbtn-${b.id}" onclick="toggleCheck('${b.id}')">C</button>
       <span class="check-timer" id="ctimer-${b.id}"></span>
@@ -224,15 +287,14 @@ function makeBossCard(b){
   return div;
 }
 
-// Build UI
 const root=document.getElementById('root');
 ZONES.forEach(z=>{
   const zDiv=document.createElement('div');
   zDiv.className='zone';
   zDiv.style.cssText=`border-color:${z.color};background:${z.bg}`;
-  zDiv.innerHTML=`<div class="zone-header"><div class="zone-dot" style="background:${z.color}"></div><span class="zone-title">${z.label}</span></div>`;
+  const cycleText=z.cycle?`<span class="cycle-info">${z.cycle}</span>`:'';
+  zDiv.innerHTML=`<div class="zone-header"><div class="zone-dot" style="background:${z.color}"></div><span class="zone-title">${z.label}</span>${cycleText}</div>`;
 
-  // Subsection (e.g. Ken Rauhel / Cerenis in Aden)
   if(z.subsection){
     const sub=document.createElement('div');
     sub.className='subsection';
@@ -245,11 +307,9 @@ ZONES.forEach(z=>{
     zDiv.appendChild(sub);
   }
 
-  // Main boss grid
   const bosses=z.sorted?[...z.bosses].sort((a,b)=>a.name.localeCompare(b.name)):z.bosses;
   const grid=document.createElement('div');
   grid.className='boss-grid';
-  grid.id='grid-'+z.id;
   bosses.forEach(b=>grid.appendChild(makeBossCard(b)));
   zDiv.appendChild(grid);
   root.appendChild(zDiv);
@@ -258,9 +318,10 @@ ZONES.forEach(z=>{
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
 window.toggleCheck=toggleCheck;
+window.toggleCycle=toggleCycle;
 
-// Firebase sync — bosses
 const statusBar=document.getElementById('status-bar');
+
 onValue(ref(db,'bosses'),snapshot=>{
   const data=snapshot.val()||{};
   Object.keys(bossMap).forEach(id=>{
@@ -272,7 +333,6 @@ onValue(ref(db,'bosses'),snapshot=>{
   statusBar.className='connected';
 },function(){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
 
-// Firebase sync — checks
 onValue(ref(db,'checks'),snapshot=>{
   const data=snapshot.val()||{};
   Object.keys(bossMap).forEach(id=>{
@@ -284,7 +344,14 @@ onValue(ref(db,'checks'),snapshot=>{
   });
 });
 
-// Tick
+onValue(ref(db,'cycles'),snapshot=>{
+  const data=snapshot.val()||{};
+  Object.keys(bossMap).forEach(id=>{
+    cycleState[id]=data[id]?data[id].cycle:null;
+    updateCycleBtns(id);
+  });
+});
+
 setInterval(()=>{
   Object.keys(state).forEach(updateCard);
   Object.keys(checkState).forEach(updateCheckTimer);
