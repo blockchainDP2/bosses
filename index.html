@@ -30,13 +30,7 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 .cycle-btn.active-prev{color:#fff;background:#3a2000;border-color:#c87020}
 .cycle-btn.active-curr{color:#fff;background:#1a3a55;border-color:#4a90d9}
 
-/* Check button */
-.boss-check-row{display:flex;gap:5px;padding:5px 10px 6px;border-top:0.5px solid #333;align-items:center}
-.check-btn{padding:3px 10px;font-size:11px;font-weight:700;color:#555;background:#111;border:1px solid #333;border-radius:4px;cursor:pointer;transition:all 0.15s}
-.check-btn:hover{background:#222;color:#aaa}
-.check-btn.active{color:#fff;background:#1a3a55;border-color:#4a90d9}
-.check-timer{font-family:monospace;font-size:11px;color:#4a90d9;display:none}
-.check-timer.visible{display:block}
+
 
 /* Spawn timer */
 .boss-timer{padding:6px 10px 8px;border-top:0.5px solid #333;display:none}
@@ -64,7 +58,7 @@ h1{font-size:20px;font-weight:500;text-align:center;padding:1.5rem 1rem 0.25rem;
 </head>
 <body>
 <h1>⚔ Boss Tracker</h1>
-<p class="subtitle">Toca el nombre del boss al matarlo · Ant: ciclo anterior · Act: ciclo actual · C: chekeado</p>
+<p class="subtitle">Toca el nombre del boss al matarlo · Ant: ciclo anterior · Act: ciclo actual</p>
 <div id="status-bar">Conectando...</div>
 <div id="root"></div>
 
@@ -205,7 +199,6 @@ function getStatusText(e,min,max){if(e>=max*60)return'✓ Seguro que ha spawnead
 function getBarPct(e,max){return Math.min(100,Math.round((e/(max*60))*100))}
 
 const state={};
-const checkState={};
 const cycleState={};
 
 function updateCard(id){
@@ -222,15 +215,7 @@ function updateCard(id){
   document.getElementById('tbar-'+id).style.width=getBarPct(elapsed,max)+'%';
 }
 
-function updateCheckTimer(id){
-  const c=checkState[id];
-  const el=document.getElementById('ctimer-'+id);
-  if(!el)return;
-  if(!c){el.className='check-timer';el.textContent='';return;}
-  const elapsed=Math.floor((Date.now()-c.checkedAt)/1000);
-  el.className='check-timer visible';
-  el.textContent='C: '+fmt(elapsed);
-}
+
 
 function killBoss(id){set(ref(db,'bosses/'+id),{killedAt:Date.now()});}
 
@@ -242,10 +227,7 @@ function resetBoss(id,name,e){
   remove(ref(db,'cycles/'+id));
 }
 
-function toggleCheck(id){
-  if(checkState[id]){remove(ref(db,'checks/'+id));}
-  else{set(ref(db,'checks/'+id),{checkedAt:Date.now()});}
-}
+
 
 function toggleCycle(id,which){
   const cur=cycleState[id];
@@ -274,10 +256,7 @@ function makeBossCard(b){
       <button class="cycle-btn" id="cprev-${b.id}" onclick="toggleCycle('${b.id}','prev')">Ant</button>
       <button class="cycle-btn" id="ccurr-${b.id}" onclick="toggleCycle('${b.id}','curr')">Act</button>
     </div>
-    <div class="boss-check-row">
-      <button class="check-btn" id="cbtn-${b.id}" onclick="toggleCheck('${b.id}')">C</button>
-      <span class="check-timer" id="ctimer-${b.id}"></span>
-    </div>
+
     <div class="boss-timer" id="timer-${b.id}">
       <div class="timer-display" id="tdisp-${b.id}">00:00:00</div>
       <div class="timer-status" id="tstat-${b.id}"></div>
@@ -317,7 +296,6 @@ ZONES.forEach(z=>{
 
 window.killBoss=killBoss;
 window.resetBoss=resetBoss;
-window.toggleCheck=toggleCheck;
 window.toggleCycle=toggleCycle;
 
 const statusBar=document.getElementById('status-bar');
@@ -333,16 +311,7 @@ onValue(ref(db,'bosses'),snapshot=>{
   statusBar.className='connected';
 },function(){ statusBar.textContent='✗ Sin conexión'; statusBar.className='disconnected';});
 
-onValue(ref(db,'checks'),snapshot=>{
-  const data=snapshot.val()||{};
-  Object.keys(bossMap).forEach(id=>{
-    if(data[id]){checkState[id]={checkedAt:data[id].checkedAt};}
-    else{delete checkState[id];}
-    const btn=document.getElementById('cbtn-'+id);
-    if(btn)btn.classList.toggle('active',!!checkState[id]);
-    updateCheckTimer(id);
-  });
-});
+
 
 onValue(ref(db,'cycles'),snapshot=>{
   const data=snapshot.val()||{};
@@ -354,7 +323,6 @@ onValue(ref(db,'cycles'),snapshot=>{
 
 setInterval(()=>{
   Object.keys(state).forEach(updateCard);
-  Object.keys(checkState).forEach(updateCheckTimer);
 },1000);
 </script>
 </body>
